@@ -35,7 +35,7 @@
 			var deferreds = [],
 				keys = [];
 
-			if ( key.indexOf(" ") != -1 ){ keys = key.split(" "); }
+			if ( key.indexOf(" ") !== -1 ){ keys = key.split(" "); }
 			else { keys.push(key); }
 
 			$.each(keys, function(i,resource){
@@ -114,11 +114,12 @@
 
 		exists: function(namespace){
 
-			var tokens = namespace.split('.');
-			return tokens.reduce(function(prev, curr) {
-				return (typeof prev === "undefined") ? prev : prev[curr];
-			}, window);
+			var pieces = namespace.split('.'),
+				current = window;
 
+			for(var i in pieces){ if(!(current = current[pieces[i]])) { return false; }	}
+
+			return true;
 		}
 
 	};
