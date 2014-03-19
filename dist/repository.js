@@ -50,7 +50,7 @@
 
 				var params = [];
 				for (var i = 0; i < (arguments.length || 1); i++) {
-					params.push( typeof registry[keys[i]].provides == 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver() );
+					params.push( typeof registry[keys[i]].provides === 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver() );
 				}
 				context ? callback.apply(context, params): callback.apply(null,params);
 
@@ -100,8 +100,8 @@
 
 			if (!repo.load.engine) { throw 'There is no loader engine available (Yepnope or Modernizr.load or $.wk.load)'; }
 
-			if ( repo.load.lesserBrowserCondition ) { setTimeout(function(){ repo.load.engine(params); }, 20); }
-			else { repo.load.engine(params); }
+			if ( repo.load.lesserBrowserCondition ) { setTimeout(function(){ repo.load.engine.call(window,params); }, 20); }
+			else { repo.load.engine.call(window,params); }
 
 		},
 
@@ -116,7 +116,7 @@
 
 			var tokens = namespace.split('.');
 			return tokens.reduce(function(prev, curr) {
-				return (typeof prev == "undefined") ? prev : prev[curr];
+				return (typeof prev === "undefined") ? prev : prev[curr];
 			}, window);
 
 		}
@@ -130,4 +130,4 @@
 	repo.load.lesserBrowserCondition = false;
 	repo.load.engine = $.wk.load || window.yepnope || (window.Modernizr && window.Modernizr.load );
 
-})(jQuery || Zepto, window);
+})(window.jQuery || window.Zepto, window);
