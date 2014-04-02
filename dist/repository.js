@@ -64,7 +64,7 @@
 
 			var resourceParams = {};
 
-			if (typeof resources === 'object'){
+			if ($.isPlainObject(resources)){
 				resourceParams = resources;
 			} else {
 				resourceParams = $.extend({'resources': resources, 'resolver': resolver}, params);
