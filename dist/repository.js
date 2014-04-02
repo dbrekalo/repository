@@ -1,5 +1,7 @@
 ;(function($, window){
 
+	"use strict";
+
 	$.wk = $.wk || {};
 
 	var registry = {},
@@ -18,8 +20,10 @@
 			return;
 		}
 
+		var resourcesList = registry[key].resources;
+
 		repo.load({
-			load: registry[key].resources,
+			load: $.isArray(resourcesList) ? resourcesList.slice(0) : resourcesList,
 			complete: function(){
 
 				registry[key].resolved = true;
@@ -49,13 +53,13 @@
 
 			});
 
-			$.when.apply(null,deferreds).done(function(){
+			$.when.apply(window,deferreds).done(function(){
 
 				var params = [];
 				for (var i = 0; i < (arguments.length || 1); i++) {
 					params.push( typeof registry[keys[i]].provides === 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver() );
 				}
-				context ? callback.apply(context, params): callback.apply(null,params);
+				context ? callback.apply(context, params): callback.apply(window,params);
 
 			});
 
