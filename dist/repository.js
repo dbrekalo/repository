@@ -1,7 +1,10 @@
 ;(function($, window){
 
+	$.wk = $.wk || {};
+
 	var registry = {},
-		baseUrl = "";
+		baseUrl = "",
+		loadEngine = $.wk.load || window.yepnope || (window.Modernizr && window.Modernizr.load );
 
 	function requireResource(key, resourceDeferred){
 
@@ -98,16 +101,24 @@
 
 			});
 
-			if (!repo.load.engine) { throw 'There is no loader engine available (Yepnope or Modernizr.load or $.wk.load)'; }
+			if (!loadEngine) { throw 'There is no loader engine available (Yepnope or Modernizr.load or Simpleloader)'; }
 
-			if ( repo.load.lesserBrowserCondition ) { setTimeout(function(){ repo.load.engine.call(window,params); }, 20); }
-			else { repo.load.engine.call(window,params); }
+			if ( repo.load.lesserBrowserCondition ) { setTimeout(function(){ loadEngine(params); }, 20); }
+			else { loadEngine(params); }
+
 
 		},
 
 		setBaseUrl:function( path ){
 
 			baseUrl = path;
+			return repo;
+
+		},
+
+		setLoadEngine: function(engine){
+
+			loadEngine = engine;
 			return repo;
 
 		},
@@ -124,11 +135,9 @@
 
 	};
 
-	$.wk = $.wk || {};
 	$.wk.repo = repo;
 
 	repo.load.sufix = '?v=' + new Date().getTime();
 	repo.load.lesserBrowserCondition = false;
-	repo.load.engine = $.wk.load || window.yepnope || (window.Modernizr && window.Modernizr.load );
 
 })(window.jQuery || window.Zepto, window);
