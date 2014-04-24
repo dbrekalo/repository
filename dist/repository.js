@@ -59,7 +59,7 @@
 		require: function(key, callback, context){
 
 			var deferreds = [],
-				keys = $.isArray(input) ? input : input.split(" ");
+				keys = $.isArray(key) ? key : key.split(" ");
 
 			$.each(keys, function(i,resource){
 
