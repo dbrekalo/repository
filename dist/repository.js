@@ -8,15 +8,33 @@
 		baseUrl = "",
 		loadEngine = $.wk.load || window.yepnope || (window.Modernizr && window.Modernizr.load );
 
-	function requireResource(key, resourceDeferred){
+	function requireResource(key){
 
 		if (!registry[key]) { throw 'There is no "'+ key +'" service registered'; }
 
-		if (registry[key].resolved) { resourceDeferred.resolve(); return; }
+		if (registry[key].resolvedDeferred.state() === 'resolved') { return; }
+
+		if (registry[key].dependencies) {
+
+			repo.require(registry[key].dependencies, function(){
+				tryResolveOrLoad(key);
+			});
+
+			return;
+
+		}
+
+		tryResolveOrLoad(key);
+
+	}
+
+	function tryResolveOrLoad(key) {
 
 		if (registry[key].resolver()) {
-			if (registry[key].onResolve) { registry[key].onResolve(); }
-			resourceDeferred.resolve();
+
+			registry[key].onResolve && registry[key].onResolve();
+			registry[key].resolvedDeferred.resolve();
+
 			return;
 		}
 
@@ -26,13 +44,14 @@
 			load: $.isArray(resourcesList) ? resourcesList.slice(0) : resourcesList,
 			complete: function(){
 
-				registry[key].resolved = true;
-				if (registry[key].onResolve) { registry[key].onResolve(); }
-				resourceDeferred.resolve();
+				if (registry[key].resolvedDeferred.state() !== 'resolved') {
+					registry[key].onResolve && registry[key].onResolve();
+				}
+
+				registry[key].resolvedDeferred.resolve();
 
 			}
 		});
-
 	}
 
 	var repo = {
@@ -40,16 +59,12 @@
 		require: function(key, callback, context){
 
 			var deferreds = [],
-				keys = [];
-
-			if ( key.indexOf(" ") !== -1 ){ keys = key.split(" "); }
-			else { keys.push(key); }
+				keys = $.isArray(input) ? input : input.split(" ");
 
 			$.each(keys, function(i,resource){
 
-				var deferred = $.Deferred();
-				deferreds.push(deferred);
-				requireResource(resource, deferred);
+				deferreds.push(registry[resource].resolvedDeferred);
+				requireResource(resource);
 
 			});
 
@@ -83,9 +98,7 @@
 			}
 
 			registry[key] = resourceParams;
-			registry[key].resolved =  resourceParams.resolver() ? true : false;
-
-			if (registry[key].resolved && resourceParams.onResolve){ resourceParams.onResolve(); }
+			registry[key].resolvedDeferred = $.Deferred();
 
 			return repo;
 
