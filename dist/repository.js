@@ -54,11 +54,29 @@
 		});
 	}
 
+	function registerResource(key, params){
+
+		var namespace = params.resolver ? params.resolver : key;
+
+		params.resolver = function(returnNamespace){
+			return repo.exists(namespace, returnNamespace);
+		};
+
+		registry[key] = params;
+		registry[key].resolvedDeferred = $.Deferred();
+
+		if (registry[key].resolver()) {
+			registry[key].scriptCached = true;
+		}
+
+	}
+
 	var repo = {
 
 		require: function(key, callback, context){
 
 			var deferreds = [],
+				requireDeferred = $.Deferred(),
 				keys = $.isArray(key) ? key : key.split(" ");
 
 			$.each(keys, function(i,resource){
@@ -68,17 +86,21 @@
 
 			});
 
-			$.when.apply(window,deferreds).done(function(){
+			$.when(requireDeferred).done(function(){
 
 				var params = [];
-				for (var i = 0; i < (arguments.length || 1); i++) {
-					params.push( typeof registry[keys[i]].provides === 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver() );
+				for (var i = 0; i < (deferreds.length || 1); i++) {
+					params.push( typeof registry[keys[i]].provides === 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver(true));
 				}
 				context ? callback.apply(context, params): callback.apply(window,params);
 
 			});
 
-			return repo;
+			$.when.apply(window,deferreds).done(function(){
+				requireDeferred.resolve();
+			});
+
+			return requireDeferred;
 
 		},
 
@@ -92,13 +114,22 @@
 				resourceParams = $.extend({'resources': resources, 'resolver': resolver}, params);
 			}
 
-			if (typeof resourceParams.resolver === 'string'){
-				var namespace = resourceParams.resolver;
-				resourceParams.resolver = function(){ return repo.exists(namespace); };
-			}
+			registerResource(key,resourceParams);
 
-			registry[key] = resourceParams;
-			registry[key].resolvedDeferred = $.Deferred();
+			return repo;
+
+		},
+
+		config: function(config){
+
+			$.each(config.resources, function(key,params){
+				registerResource(key, params);
+			});
+
+			config.baseUrl && repo.setBaseUrl(config.baseUrl);
+			config.loadEngine && repo.setLoadEngine(config.loadEngine);
+			config.loadSufix && repo.setLoadSufix(config.loadSufix);
+			config.lesserBrowserFlag && repo.setLesserBrowserFlag(config.lesserBrowserFlag);
 
 			return repo;
 
@@ -120,7 +151,7 @@
 
 			if (!loadEngine) { throw 'There is no loader engine available (Yepnope or Modernizr.load or Simpleloader)'; }
 
-			if ( repo.load.lesserBrowserCondition ) { setTimeout(function(){ loadEngine(params); }, 20); }
+			if ( repo.load.lesserBrowserFlag ) { setTimeout(function(){ loadEngine(params); }, 20); }
 			else { loadEngine(params); }
 
 
@@ -140,21 +171,40 @@
 
 		},
 
-		exists: function(namespace){
+		setLoadSufix: function(sufix){
+
+			repo.load.sufix = sufix;
+			return repo;
+		},
+
+		setLesserBrowserFlag: function(flag){
+
+			repo.load.lesserBrowserFlag = flag;
+			return repo;
+
+		},
+
+		exists: function(namespace, returnNamespace){
 
 			var pieces = namespace.split('.'),
 				current = window;
 
 			for(var i in pieces){ if(!(current = current[pieces[i]])) { return false; }	}
 
-			return true;
+			return returnNamespace ? current : true;
+		},
+
+		isScriptCached: function(key){
+
+			return !!registry[key].scriptCached;
+
 		}
 
 	};
 
 	$.wk.repo = repo;
 
-	repo.load.sufix = '?v=' + new Date().getTime();
-	repo.load.lesserBrowserCondition = false;
+	repo.load.sufix = '';
+	repo.load.lesserBrowserFlag = false;
 
 })(window.jQuery || window.Zepto, window);
