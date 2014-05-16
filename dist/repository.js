@@ -59,7 +59,7 @@
 
 	function registerResource(key, params){
 
-		var namespace = params.resolver ? params.resolver : key;
+		var namespace = params.namespace ? params.namespace :  params.resolver ? params.resolver : key;
 
 		params.resolver = function(returnNamespace){
 			return repo.exists(namespace, returnNamespace);
