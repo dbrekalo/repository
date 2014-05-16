@@ -10,9 +10,7 @@
 
 	function requireResource(key){
 
-		if (!registry[key]) { throw 'There is no "'+ key +'" service registered'; }
-
-		if (registry[key].resolvedDeferred.state() === 'resolved') { return; }
+		if (registry[key].deferred.state() === 'resolved') { return; }
 
 		if (registry[key].dependencies) {
 
@@ -33,7 +31,7 @@
 		if (registry[key].resolver()) {
 
 			registry[key].onResolve && registry[key].onResolve();
-			registry[key].resolvedDeferred.resolve();
+			registry[key].deferred.resolve();
 
 			return;
 		}
@@ -44,11 +42,16 @@
 			load: $.isArray(resourcesList) ? resourcesList.slice(0) : resourcesList,
 			complete: function(){
 
-				if (registry[key].resolvedDeferred.state() !== 'resolved') {
+				if (registry[key].deferred.state() !== 'resolved') {
 					registry[key].onResolve && registry[key].onResolve();
 				}
 
-				registry[key].resolvedDeferred.resolve();
+				registry[key].deferred.resolve();
+
+			},
+			fail: function(){
+
+				registry[key].deferred.reject();
 
 			}
 		});
@@ -63,7 +66,7 @@
 		};
 
 		registry[key] = params;
-		registry[key].resolvedDeferred = $.Deferred();
+		registry[key].deferred = $.Deferred();
 
 		if (registry[key].resolver()) {
 			registry[key].scriptCached = true;
@@ -73,7 +76,7 @@
 
 	var repo = {
 
-		require: function(key, callback, context){
+		require: function(key, doneCallback, context){
 
 			var deferreds = [],
 				requireDeferred = $.Deferred(),
@@ -81,8 +84,13 @@
 
 			$.each(keys, function(i,resource){
 
-				deferreds.push(registry[resource].resolvedDeferred);
-				requireResource(resource);
+				if (registry[resource]){
+					deferreds.push(registry[resource].deferred);
+					requireResource(resource);
+				}
+				else {
+					requireDeferred.reject();
+				}
 
 			});
 
@@ -92,12 +100,14 @@
 				for (var i = 0; i < (deferreds.length || 1); i++) {
 					params.push( typeof registry[keys[i]].provides === 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver(true));
 				}
-				context ? callback.apply(context, params): callback.apply(window,params);
+				context ? doneCallback.apply(context, params): doneCallback.apply(window,params);
 
 			});
 
 			$.when.apply(window,deferreds).done(function(){
 				requireDeferred.resolve();
+			}).fail(function(){
+				requireDeferred.reject();
 			});
 
 			return requireDeferred;
@@ -129,7 +139,7 @@
 			config.baseUrl && repo.setBaseUrl(config.baseUrl);
 			config.loadEngine && repo.setLoadEngine(config.loadEngine);
 			config.loadSufix && repo.setLoadSufix(config.loadSufix);
-			config.lesserBrowserFlag && repo.setLesserBrowserFlag(config.lesserBrowserFlag);
+			typeof config.lesserBrowserFlag !== 'undefined' && repo.setLesserBrowserFlag(config.lesserBrowserFlag);
 
 			return repo;
 
@@ -189,7 +199,10 @@
 			var pieces = namespace.split('.'),
 				current = window;
 
-			for(var i in pieces){ if(!(current = current[pieces[i]])) { return false; }	}
+			for(var i in pieces){
+				current = current[pieces[i]];
+				if(typeof current === 'undefined') { return false; }
+			}
 
 			return returnNamespace ? current : true;
 		},
