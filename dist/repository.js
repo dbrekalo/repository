@@ -94,15 +94,20 @@
 
 			});
 
-			$.when(requireDeferred).done(function(){
+			if (doneCallback) {
 
-				var params = [];
-				for (var i = 0; i < (deferreds.length || 1); i++) {
-					params.push( typeof registry[keys[i]].provides === 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver(true));
-				}
-				context ? doneCallback.apply(context, params): doneCallback.apply(window,params);
+				$.when(requireDeferred).done(function(){
 
-			});
+					var params = [];
+					for (var i = 0; i < (deferreds.length || 1); i++) {
+						params.push( typeof registry[keys[i]].provides === 'function' ? registry[keys[i]].provides() : registry[keys[i]].resolver(true));
+					}
+
+					context ? doneCallback.apply(context, params): doneCallback.apply(window,params);
+
+				});
+
+			}
 
 			$.when.apply(window,deferreds).done(function(){
 				requireDeferred.resolve();
