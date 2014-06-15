@@ -6,6 +6,7 @@
 
 	var registry = {},
 		baseUrl = "",
+		resolveFileByNamespace = false,
 		loadEngine = $.wk.load || window.yepnope || (window.Modernizr && window.Modernizr.load );
 
 	function requireResource(key){
@@ -85,10 +86,27 @@
 			$.each(keys, function(i,resource){
 
 				if (registry[resource]){
+
 					deferreds.push(registry[resource].deferred);
 					requireResource(resource);
-				}
-				else {
+
+				} else if (resolveFileByNamespace){
+
+					var filePath = resolveFileByNamespace(resource);
+
+					if (filePath){
+
+						registerResource(resource,{
+							'resources': filePath
+						});
+						deferreds.push(registry[resource].deferred);
+						requireResource(resource);
+
+					} else {
+						requireDeferred.reject();
+					}
+
+				} else {
 					requireDeferred.reject();
 				}
 
@@ -144,6 +162,7 @@
 			config.baseUrl && repo.setBaseUrl(config.baseUrl);
 			config.loadEngine && repo.setLoadEngine(config.loadEngine);
 			config.loadSufix && repo.setLoadSufix(config.loadSufix);
+			config.resolveFileByNamespace && repo.setResolveFileByNamespace(config.resolveFileByNamespace);
 			typeof config.lesserBrowserFlag !== 'undefined' && repo.setLesserBrowserFlag(config.lesserBrowserFlag);
 
 			return repo;
@@ -196,6 +215,12 @@
 
 			repo.load.lesserBrowserFlag = flag;
 			return repo;
+
+		},
+
+		setResolveFileByNamespace: function(callback){
+
+			resolveFileByNamespace = callback;
 
 		},
 
