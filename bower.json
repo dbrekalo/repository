@@ -1,6 +1,6 @@
 {
   "name": "repository",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "homepage": "https://github.com/dbrekalo/repository",
   "authors": [
     "Damir Brekalo <dbrekalo@gmail.com>"
@@ -21,6 +21,7 @@
     "tests"
   ],
   "dependencies": {
-    "jquery": ">=1.7"
+    "jquery": ">=1.7",
+    "simpleloader": ">=0"
   }
 }
